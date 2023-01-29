@@ -1,0 +1,48 @@
+---
+title: "FML assignment 1"
+author: "shiva gadila"
+date: "2023-01-29"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+```{r}
+library(tinytex)
+```
+#1. Downloaded the Dataset from Kaggle.
+
+
+#2. IMPORTING THE DATASET: 
+
+```{r}
+ Hotel.Reservations <- read.csv("~/Desktop/Hotel Reservations.csv")
+head(Hotel.Reservations)
+```
+
+#3. DESCRIPTIVE STATISTICS:
+```{r}
+summary(Hotel.Reservations)
+
+```
+#4.TRANSFORMATION OF NO_OF_ADULTS VARIABLES :
+```{r}
+Hotel.Reservations$no_of_adults<-  mean(Hotel.Reservations$no_of_adults)/sd(Hotel.Reservations$no_of_adults)
+head(Hotel.Reservations$no_of_adults)
+```
+
+
+#5.HISTOGRAPH AND SCATTERPLOT:
+```{r}
+hist(Hotel.Reservations$no_of_week_nights )
+
+
+library(ggplot2)
+ggplot(Hotel.Reservations) +
+  aes(x =avg_price_per_room , y =lead_time) +
+  geom_point(shape = "square", size = 1.5, colour = "orange") +
+  theme_minimal()
+```
+
+```
+
