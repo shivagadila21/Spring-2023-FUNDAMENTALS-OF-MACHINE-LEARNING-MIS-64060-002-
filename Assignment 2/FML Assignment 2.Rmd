@@ -1,0 +1,138 @@
+---
+title: "FML Assignment 2"
+author: "shiva gadila"
+date: "2023-02-19"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+```{r}
+#loading the packages
+
+library(caret)
+library(ISLR)
+library(dplyr)
+library(class)
+library(FNN)
+```
+
+
+```{r}
+# Importing the dataset.
+UniversalBank <- read.csv("~/Desktop/UniversalBank.csv")
+```
+
+
+```{r}
+#Performing a K-NN classification with all attributes except ID and ZIP code.
+UniversalBank$ID <- NULL
+UniversalBank$ZIP.Code <- NULL
+summary(UniversalBank)
+UniversalBank$Personal.Loan =  as.factor(UniversalBank$Personal.Loan)
+```
+
+```{r}
+#Creating dummy  variables
+education_1 <- ifelse(UniversalBank$Education==1 ,1,0)
+
+education_2 <- ifelse(UniversalBank$Education==2 ,1,0)
+
+education_3 <- ifelse(UniversalBank$Education==3 ,1,0)
+
+unibank<-data.frame(Age=UniversalBank$Age,Experience=UniversalBank$Experience,Income=UniversalBank$Income,Family=UniversalBank$Family,CCAvg=UniversalBank$CCAvg, education_1=education_1,education_2=education_2,education_3=education_3,Personal.Loan=UniversalBank$Personal.Loan,Mortgage=UniversalBank$Mortgage,Securities.Account=UniversalBank$Securities.Account,CD.Account=UniversalBank$CD.Account,Online=UniversalBank$Online,CreditCard=UniversalBank$CreditCard)
+head(unibank)
+```
+
+
+```{r}
+#Dividing into training and validation
+Model.normalise <- preProcess(UniversalBank[, -8],method = c("center", "scale"))
+summary(UniversalBank)
+UniversalBank.normalise <- predict(Model.normalise,UniversalBank)
+summary(UniversalBank.normalise)
+
+Index_Train <- createDataPartition(UniversalBank$Personal.Loan, p = 0.6, list = FALSE)
+Train = UniversalBank.normalise[Index_Train,]
+validation = UniversalBank.normalise[-Index_Train,]
+```
+
+
+```{r}
+#QUESTION-1  - Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities Account = 0, CD Account = 0, Online = 1, and Credit Card = 1. Perform a k-NN classification with all predictors except ID and ZIP code using k = 1. Remember to transform categorical predictors with more than two categories into dummy variables first. Specify the success class as 1 (loan acceptance), and use the default cutoff value of 0.5. How would this customer be classified?
+#Prediction of data
+library(FNN)
+to_Predict = data.frame(Age = 40, Experience = 10, Income = 84, Family = 2,
+                     CCAvg = 2, Education = 1, Mortgage = 0, Securities.Account =
+                       0, CD.Account = 0, Online = 1, CreditCard = 1)
+print(to_Predict)
+Predict.Normalise <- predict(Model.normalise,to_Predict)
+Predictions <- knn(train= as.data.frame(Train[,1:7,9:12]),
+                  test = as.data.frame(Predict.Normalise[,1:7,9:12]),
+                  cl= Train$Personal.Loan,
+                  k=1)
+```
+
+```{r}
+#QUESTION 2 - What is a choice of k that balances between overfitting and ignoring the predictor information? 
+set.seed(123)
+UniversalBank <- trainControl(method= "repeatedcv", number = 3, repeats = 2)
+searchGrid = expand.grid(k=1:10)
+knn.model = train(Personal.Loan~., data = Train, method = 'knn', tuneGrid = searchGrid,trControl = UniversalBank)
+knn.model
+#The value of k is 3.This is the value that balances between overfitting and ignoring the predictor information
+```
+
+
+```{r}
+#QUESTION 3- Show the confusion matrix for the validation data that results from using the best k. 
+UniversalBank_prediction <- predict(knn.model,validation)
+confusionMatrix(UniversalBank_prediction,validation$Personal.Loan)
+#This matrix has a 95.9% accuracy.
+#This the confusion matrix for the validation data that results from using the best k.
+```
+
+
+```{r}
+#QUESTION 4 - Consider the following customer: Age = 40, Experience = 10, Income = 84, Family = 2, CCAvg = 2, Education_1 = 0, Education_2 = 1, Education_3 = 0, Mortgage = 0, Securities Account = 0, CD Account = 0, Online = 1 and Credit Card = 1. Classify the customer using the best k.
+
+ForPredictNorm = data.frame(Age = 40, Experience = 10, Income = 84, Family = 2,
+                              CCAvg = 2, Education = 1, Mortgage = 0,
+                              Securities.Account =0, CD.Account = 0, Online = 1,
+                              CreditCard = 1)
+ForPredictNorm = predict(Model.normalise, ForPredictNorm)
+predict(knn.model, ForPredictNorm)
+
+#It results in level 0,1
+```
+
+```{r}
+#QUESTION 5 - Repartition the data, this time into training, validation, and test sets (50% : 30% : 20%). Apply the k-NN method with the k chosen above. Compare the confusion matrix of the test set with that of the training and validation sets. Comment on the differences and their reason.
+
+#Creating Training, Test, and validation sets from the data collection.
+
+Train_size = 0.5 #training(50%)
+Train_Index = createDataPartition(UniversalBank.normalise$Personal.Loan, p = 0.5, list = FALSE)
+Train = UniversalBank.normalise[Train_Index,]
+
+valid_size = 0.3 #validation(30%)
+Validation_Index = createDataPartition(UniversalBank.normalise$Personal.Loan, p = 0.3, list = FALSE)
+validation = UniversalBank.normalise[Validation_Index,]
+
+Test_size = 0.2 #Test Data(20%)
+Test_Index = createDataPartition(UniversalBank.normalise$Personal.Loan, p = 0.2, list = FALSE)
+Test = UniversalBank.normalise[Test_Index,]
+
+
+Trainingknn <- knn(train = Train[,-8], test = Train[,-8], cl = Train[,8], k =3)
+Validknn <- knn(train = Train[,-8], test = validation[,-8], cl = Train[,8], k =3)
+Testingknn <- knn(train = Train[,-8], test = Test[,-8], cl = Train[,8], k =3)
+
+confusionMatrix(Trainingknn, Train[,8])
+confusionMatrix(Validknn, validation[,8])
+confusionMatrix(Testingknn, Test[,8])
+
+# The accuracy for this knn model is 0.973 or 97.3%. 
+# The Sensitivity for this knn model is 0.9956 or 99.56%. 
+# The Specificity for this knn model is 0.7604 or 76.04%.
+```
