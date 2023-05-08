@@ -1,0 +1,194 @@
+---
+title: "FML Final Exam"
+author: "Shiva Chaitanya Goud Gadila"
+date: "2023-05-03"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#IMPORTING OF DATASET 
+```{r}
+PUDL<- read.csv("~/Downloads/fuel_receipts_costs_eia923.csv")
+
+#importing the dataset PUDL(Fuel receipts)
+```
+#IMPORTING THE LIBRARY 
+```{r}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggthemes)
+library(caret)
+
+#Recalling the istalled packages.
+```
+
+#CHECKING OF THE DATA 
+```{r}
+str(PUDL) 
+```
+#EXPLORING THE GIVEN DATA
+```{r}
+glimpse(PUDL)
+#Investigating The given Information.
+```
+#CLEANING THE GIVEN DATA 
+While the data itself is clean, the dataset contains several variables that have significant missing values.
+Follows these steps:
+```{r}
+
+#1. Identify all variables that have significant missing values.
+# col names with missing values
+colnames(PUDL)[colSums(is.na(PUDL)) > 0]
+
+# all missing values
+all <- PUDL %>% 
+  summarise_all(funs(sum(is.na(.)))) %>% 
+  gather(key = "variable", value = "missing_values") %>% 
+  filter(missing_values > 0) %>% 
+  arrange(desc(missing_values))
+
+# Remove variables with significant missing values
+PUDL <- PUDL %>% 
+  select(-all$variable)
+```
+# CHECKING THE DATA
+```{r}
+ str(PUDL)
+```
+2.	Ensure that the variables have the right attributes. For example, numerical or categorical.
+```{r}
+# attributes
+sapply(PUDL, class)
+#It determines the data types of each variable in the "PUDL" dataset and returns the information as a vector using the class() function and sapply().
+```
+3.	To ensure that both the data, and the analysis are unique to each student, randomly sample about 2% of your data using a random 4-digit number as the seed to sample the data. Use 75% of the sampled data as the training set, and the rest as the test set (if needed). This should yield a training set of about 9000 and a test of about 3000. 
+```{r}
+# Set a random seed for reproducibility
+set.seed(1234)
+
+# Randomly sample about 2% of the rows from the dataset
+sampled <- PUDL %>% 
+  sample_frac(0.02)
+
+# Split the sampled data into training and test sets
+
+train<- sampled %>% 
+  sample_frac(0.75)
+
+test<- sampled %>%
+    anti_join(train)
+
+# Print the number of rows in the training and test sets
+nrow(train)
+nrow(test)
+
+#This code randomly samples 2% of the "PUDL" dataset, splits it into training and test sets, and prints the number of rows in each set. It is a common data preparation step before building and evaluating predictive models.
+```
+#CHECKING THE DATA 
+```{r}
+str(train)
+str(test)
+```
+```{r}
+# Identify the numeric variables in the training set
+numVars <- names(train)[sapply(train, is.numeric)]
+
+# Create the scatterplot matrix using the pairs() function
+pairs(train[,numVars], pch = 19, cex = 0.5,) 
+
+#The code selects the numeric variables from the train dataframe and stores them in numVars. It then creates a scatterplot matrix using the pairs() function to visualize the pairwise relationships between the numeric variables in the train dataset.
+      
+```
+
+```{r}
+# k-means clustering
+set.seed(1234)
+# Select numeric columns from the train data
+numValues <- train %>% select_if(is.numeric)
+
+# Perform k-means clustering with 3 clusters
+kmeans <- kmeans(numValues, centers = 3)
+kmeans
+
+#It performs k-means clustering with 3 clusters on the numeric columns of the training data. The resulting clusters will be stored in the kmeans object.
+```
+```{r}
+# aggregate the data
+aggregate(train[,numVars], by = list (kmeans $ cluster), mean)
+
+#This code aggregates the numeric variables in the training set by the k-means cluster labels and computes the mean for each variable within each cluster.
+```
+
+#visualizing the given data
+```{r}
+#  Create a ggplot object with the train data and cluster assignments on the y-axis
+ggplot(train, aes(y = kmeans$cluster)) +
+
+# Add a bar layer to the plot, with fill color based on cluster assignments
+  geom_bar(aes(fill = kmeans$cluster), position = "dodge") + 
+
+#  Apply the economist theme to the plot
+  theme_economist() + 
+
+# Adjust the title alignment
+  theme(plot.title = element_text(hjust = 0.5))
+
+#This creates a bar plot using ggplot, with the cluster assignments on the y-axis and the fill color based on the cluster assignments. The economist theme is applied to the plot, and the title alignment is adjusted.
+```
+#KNN
+```{r}
+# Set the seed for reproducibility
+set.seed(1234)
+
+# Identify numeric columns in the train data
+numValues <- sapply(train, is.numeric)
+
+# Load the 'class' package for kNN classification
+library(class)
+
+#Subset the train and test data to only include numeric columns
+train1 <- train[, numValues]
+test1 <- test[, numValues]
+
+# Perform kNN classification on the numeric train and test data
+# using the cluster assignments from the k-means model as the class labels
+knn <- knn(train1, test1, cl = kmeans$cluster, k = 3)
+knn
+
+#It perform k-Nearest Neighbors classification on the numeric columns of the train and test data, using the cluster assignments obtained from k-means clustering with 3 clusters on the train data as the class labels. The resulting classification is stored in the knn object.
+```
+#SEGMENTATION 
+```{r}
+#Identify numeric columns in the train data
+numValues <- sapply(train, is.numeric)
+
+# Step 2: Perform k-means clustering on the numeric train data, with 3 clusters
+kmeans <- kmeans(train[, numValues], centers = 3)
+
+kmeans
+
+#This code performs k-means clustering on the numeric columns of the training data with 3 clusters. The resulting object is saved as kmeans.
+```
+
+```{r}
+# Step 1: Get the length of the k-means cluster assignments
+kmeans_length <- length(kmeans$cluster)
+kmeans_length 
+
+# Step 2: Get the length of the kNN classifications
+knn_length <- length(knn)
+knn_length
+
+# It calculates the length of the k-means cluster assignments and the length of the kNN classifications, stored in the variables kmeans_length and knn_length, respectively.
+```
+
+
+
+
